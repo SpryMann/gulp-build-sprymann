@@ -14,6 +14,8 @@ const autoprefixer = require('gulp-autoprefixer');
 const cleanCSS = require('gulp-clean-css');
 const uglify = require('gulp-uglify');
 const del = require('del');
+const imagemin = require('gulp-imagemin');
+const imgCompress = require('imagemin-jpeg-recompress');
 
 //link files
 const cssFiles = [
@@ -24,7 +26,6 @@ const jsFiles = [
     './src/js/lib.js',
     './src/js/main.js'
 ];
-
 
 // Unification task of main.css and media.css files
 function styles() {
@@ -62,11 +63,29 @@ function watchChanges() {
     browserSync.init({
         server: {
             baseDir: "./"
-        }
+        },
+        browser: ["C:\/Program Files\/Internet Explorer\/iexplore.exe", "chrome"]
     });
     watch('./src/css/**/*.css', styles);
     watch('./src/js**/*.js', scripts);
     watch("./*.html").on('change', browserSync.reload);
+}
+
+// Function for minify images
+function images() {
+    return src('./src/images/**/*')
+        .pipe(imagemin([
+            imgCompress({
+                loops: 4,
+                min: 70,
+                max: 80,
+                quality: 'high'
+            }),
+            imagemin.gifsicle(),
+            imagemin.optipng(),
+            imagemin.svgo()
+        ]))
+        .pipe(dest('./build/images'))
 }
 
 // Call gulp tasks
@@ -78,12 +97,17 @@ exports.styles = styles;
 exports.del = cleanDir;
 // Call function "watchChanges"
 exports.watch = watchChanges;
+// Call function "images"
+exports.images = images;
+
+exports.build = series(cleanDir, parallel(scripts, styles, images));
 // Unification of all tasks
 exports.default = series(
     series(
         cleanDir,
         parallel(
             scripts,
-            styles
+            styles,
+            images
         )),
     watchChanges);
